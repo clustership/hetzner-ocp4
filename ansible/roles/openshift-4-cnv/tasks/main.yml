@@ -1,0 +1,3 @@
+---
+# tasks file for openshift-4-cnv
+- include: ./install-virtctl.yml
