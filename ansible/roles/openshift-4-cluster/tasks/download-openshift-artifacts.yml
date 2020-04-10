@@ -55,7 +55,7 @@
   file:
     path: "/opt/openshift-{{ item }}-{{ openshift_version }}"
     state: directory
-    mode: u+rwx,g-rx,o-rx
+    mode: u+rwx,g+rx,o+rx
   with_items:
   - install
   - client
