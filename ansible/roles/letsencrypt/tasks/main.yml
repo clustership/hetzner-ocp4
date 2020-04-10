@@ -101,6 +101,25 @@
   loop: "{{ challenge_data_dns | default({}) | dict2items | subelements('value') }}"
   when: le_dns_provider == "gcp" and sample_com_challenge is changed
 
+- name: Create DNS record at Azure
+  azure_rm_dnsrecordset:
+    resource_group: "{{ le_azure_rg }}"
+    relative_name: "{{ item.0.key | replace('.' + le_azure_zone, '') }}"
+    zone_name: "{{ le_azure_zone }}"
+    record_type: TXT
+    time_to_live: 60
+    records:
+    - entry: "{{ item.1 }}"
+    state: present
+    subscription_id: "{{ le_azure_subscription_id }}"
+    client_id: "{{ le_azure_client_id }}"
+    secret: "{{ le_azure_secret }}"
+    tenant: "{{ le_azure_tenant }}"
+  register: record
+  loop: "{{ challenge_data_dns | default({}) | dict2items | subelements('value') }}"
+  when: le_dns_provider == "azure" and sample_com_challenge is changed
+  delegate_to: localhost
+
 - name: DNS record info
   debug:
     msg: "{{ item.0.key }} TXT {{ item.1 }}"
@@ -172,6 +191,25 @@
   register: record
   loop: "{{ challenge_data_dns | default({}) | dict2items | subelements('value') }}"
   when: le_dns_provider == "gcp" and sample_com_challenge is changed
+
+- name: Delete DNS record at Azure
+  azure_rm_dnsrecordset:
+    resource_group: "{{ le_azure_rg }}"
+    relative_name: "{{ item.0.key | replace('.' + le_azure_zone, '') }}"
+    zone_name: "{{ le_azure_zone }}"
+    record_type: TXT
+    time_to_live: 60
+    records:
+    - entry: "{{ item.1 }}"
+    state: absent
+    subscription_id: "{{ le_azure_subscription_id }}"
+    client_id: "{{ le_azure_client_id }}"
+    secret: "{{ le_azure_secret }}"
+    tenant: "{{ le_azure_tenant }}"
+  register: record
+  loop: "{{ challenge_data_dns | default({}) | dict2items | subelements('value') }}"
+  when: le_dns_provider == "azure" and sample_com_challenge is changed
+  delegate_to: localhost
 
 - name: concat root ca and intermediate
   shell: "cat {{ le_certificates_dir }}/isrgrootx1.pem {{ le_certificates_dir }}/{{ le_public_domain }}/intermediate.crt >> {{ le_certificates_dir }}/{{ le_public_domain }}/ca-bundle.pem"
