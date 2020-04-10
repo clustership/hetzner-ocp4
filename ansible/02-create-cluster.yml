@@ -5,6 +5,7 @@
   connection: local
   # gather_facts true because we need the public ip address
   gather_facts: true
+  become: true
   vars_files:
   - ../cluster.yml
 
