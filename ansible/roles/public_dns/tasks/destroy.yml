@@ -49,3 +49,37 @@
   - api
   - '*.apps'
   when: pd_provider == "gcp"
+
+- name: Destroy DNS record at Azure
+  azure_rm_dnsrecordset:
+    resource_group: "{{ azure_rg }}"
+    relative_name: "{{ item }}"
+    zone_name: "{{ pd_public_domain }}"
+    record_type: A
+    time_to_live: 120
+    records:
+    - entry: "{{ pd_public_ip }}"
+    state: absent
+    subscription_id: "{{ azure_subscription_id }}"
+    client_id: "{{ azure_client_id }}"
+    secret: "{{ azure_secret }}"
+    tenant: "{{ azure_tenant }}"
+  ignore_errors: yes
+  with_items:
+  - api
+  - '*.apps'
+  when: pd_provider == "azure"
+  delegate_to: localhost
+
+- name: Destroy DNS zone at Azure
+  azure_rm_dnszone:
+    resource_group: "{{ azure_rg }}"
+    name: "{{ pd_public_domain }}"
+    state: absent
+    subscription_id: "{{ azure_subscription_id }}"
+    client_id: "{{ azure_client_id }}"
+    secret: "{{ azure_secret }}"
+    tenant: "{{ azure_tenant }}"
+  ignore_errors: yes
+  when: pd_provider == "azure"
+  delegate_to: localhost
