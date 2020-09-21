@@ -50,6 +50,7 @@
 ###########################################################################################
 - set_fact:
     identity_roviders: "[]"
+  tags: idp
 
 - name: Handle auth_htpasswd
   block:
@@ -79,6 +80,7 @@
       set_fact:
         identity_roviders: "{{ identity_roviders }} + [ {{ htpasswd_idp }} ]"
   when: auth_htpasswd is defined
+  tags: idp
 
 - name: Handle auth_redhatsso
   block:
@@ -110,6 +112,7 @@
       set_fact:
         identity_roviders: "{{ identity_roviders }} + [ {{ redhatsso_idp }} ]"
   when: auth_redhatsso is defined
+  tags: idp
 
 - name: Configure identity providers
   k8s:
@@ -122,6 +125,7 @@
           name: cluster
         spec:
           identityProviders: "{{ identity_roviders }}"
+  tags: idp
 
 
 
@@ -147,6 +151,7 @@
         name: "{{ item.cluster_role }}"
   with_items: "{{ cluster_role_bindings }}"
   when: cluster_role_bindings is defined
+  tags: idp
 
 ###########################################################################################
 # Print Cluster informations

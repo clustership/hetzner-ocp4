@@ -1,0 +1,65 @@
+- name: Configure dns using challenge alias
+  debug: var=challenge_data_dns
+
+- name: Concatenate list
+  set_fact:
+    txt_data: "{{ txt_data|default([]) + item.value }}"
+  loop: "{{ challenge_data_dns | default([]) | dict2items }}"
+
+- name: Debug txt_data
+  debug: msg="{{ txt_data | map('regex_replace', '^(.*)$', '\"\\1\"' ) | list }}"
+
+- name: Create DNS record at Route53
+  route53:
+    state: present
+    zone: "{{ le_aws_zone }}"
+    record: "{{ le_challenge_alias }}"
+    type: TXT
+    ttl: 60
+    value: "{{ txt_data | map('regex_replace', '^(.*)$', '\"\\1\"' ) | list }}"
+    wait: yes
+    overwrite: yes
+    aws_access_key: "{{ le_aws_access_key }}"
+    aws_secret_key: "{{ le_aws_secret_key }}"
+  register: record
+  # loop: "{{ challenge_data_dns | default({}) | dict2items | subelements('value') }}"
+  when: le_dns_provider == "route53" and le_challenge_alias is defined and sample_com_challenge is changed
+
+- name: DNS record info
+  debug:
+    msg: "{{ le_challenge_alias }} TXT {{ txt_data | join(' ')}}"
+  when: sample_com_challenge is changed
+
+- name: Let the challenge be validated and retrieve the cert and intermediate certificate
+  acme_certificate:
+    account_key_src: "{{ le_certificates_dir }}/account.key"
+    account_email: "{{ le_letsencrypt_account_email }}"
+    src: "{{ le_certificates_dir }}/{{ le_public_domain }}/cert.csr"
+    cert: "{{ le_certificates_dir }}/{{ le_public_domain }}/cert.crt"
+    fullchain: "{{ le_certificates_dir }}/{{ le_public_domain }}/fullchain.crt"
+    chain: "{{ le_certificates_dir }}/{{ le_public_domain }}/intermediate.crt"
+    challenge: dns-01
+    acme_version: 2
+    acme_directory: "{{ le_acme_directory }}"
+    remaining_days: 60
+    data: "{{ sample_com_challenge }}"
+  when: sample_com_challenge is changed
+
+- name: Delete DNS record at Route53
+  route53:
+    state: absent
+    zone: "{{ le_aws_zone }}"
+    record: "{{ le_challenge_alias }}"
+    type: TXT
+    ttl: 60
+    value: "{{ txt_data | map('regex_replace', '^(.*)$', '\"\\1\"' ) | list }}"
+    wait: yes
+    aws_access_key: "{{ le_aws_access_key }}"
+    aws_secret_key: "{{ le_aws_secret_key }}"
+  register: record
+  loop: "{{ challenge_data_dns | default({}) | dict2items | subelements('value') }}"
+  when: le_dns_provider == "route53" and sample_com_challenge is changed
+
+- name: Stop here for debugging purpose
+  meta: end_play
+

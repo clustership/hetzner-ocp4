@@ -54,6 +54,13 @@
     challenge_data_dns: "{{ sample_com_challenge.challenge_data_dns }}"
   when: sample_com_challenge is changed
 
+- name: Configure challenge use challenge_alias
+  import_tasks: challenge-alias.yml
+  vars:
+    challenge_data_dns: "{{ challenge_data_dns }}"
+  when: le_challenge_alias is defined and sample_com_challenge is changed
+  tags: challenge_alias
+
 - name: Create DNS record at CloudFlare
   cloudflare_dns:
     zone: "{{ le_cloudflare_zone }}"
